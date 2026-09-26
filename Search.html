@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color" content="#e9eef3">
+
+    <title>Search Products</title>
+
+
+    <!-- =====================================================
+         GOOGLE FONT
+    ====================================================== -->
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+
+
+    <!-- =====================================================
+         CSS
+    ====================================================== -->
+
+    <link rel="stylesheet"
+          href="Search.css">
+
+
+
+
+
+<link
+    rel="manifest"
+    href="./manifest.webmanifest"
+>
+<meta
+    name="theme-color"
+    content="#e9eef3"
+>
+<meta
+    name="mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+>
+
+
+
+
+</head>
+
+
+<body>
+
+<div class="page-container">
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="page-header">
+
+        <button
+            class="back-button"
+            type="button"
+            onclick="goHome()"
+            aria-label="Go home">
+
+            ←
+
+        </button>
+
+
+        <div class="header-text">
+
+            <h1>Search Products</h1>
+
+            <p>Find by barcode, style or image</p>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================================
+         TEXT SEARCH
+    ====================================================== -->
+
+    <section class="search-section">
+
+
+        <!-- =================================================
+             BARCODE
+        ================================================== -->
+
+        <div class="search-card">
+
+            <div class="field-label">
+
+                <span class="field-icon">
+                    #
+                </span>
+
+                <span>
+                    BARCODE
+                </span>
+
+            </div>
+
+
+            <div class="input-box">
+
+                <input
+                    type="text"
+                    id="barcodeSearch"
+                    placeholder="Enter barcode"
+                    autocomplete="off"
+                    inputmode="numeric"
+                    spellcheck="false">
+
+
+                <button
+                    type="button"
+                    class="input-clear"
+                    id="clearBarcode"
+                    onclick="clearBarcode()"
+                    aria-label="Clear barcode">
+
+                    ×
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             STYLE NUMBER
+        ================================================== -->
+
+        <div class="search-card">
+
+            <div class="field-label">
+
+                <span class="field-icon">
+                    A
+                </span>
+
+                <span>
+                    STYLE NUMBER
+                </span>
+
+            </div>
+
+
+            <div class="input-box">
+
+                <input
+                    type="text"
+                    id="styleSearch"
+                    placeholder="Enter style number"
+                    autocomplete="off"
+                    spellcheck="false">
+
+
+                <button
+                    type="button"
+                    class="input-clear"
+                    id="clearStyle"
+                    onclick="clearStyle()"
+                    aria-label="Clear style number">
+
+                    ×
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SEARCH BUTTON
+    ====================================================== -->
+
+    <button
+        type="button"
+        class="search-button"
+        id="searchButton"
+        onclick="searchProducts()">
+
+        <span class="search-button-icon">
+            ⌕
+        </span>
+
+        Search Products
+
+    </button>
+
+
+
+    <!-- =====================================================
+         DIVIDER
+    ====================================================== -->
+
+    <div class="or-divider">
+
+        <span></span>
+
+        <strong>OR SEARCH BY IMAGE</strong>
+
+        <span></span>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         IMAGE SEARCH
+    ====================================================== -->
+
+    <section class="image-search-card">
+
+
+        <!-- =================================================
+             IMAGE PREVIEW
+        ================================================== -->
+
+        <div
+            class="search-image-preview"
+            id="searchImagePreview">
+
+            <div
+                class="image-placeholder"
+                id="imagePlaceholder">
+
+                <span class="placeholder-icon">
+                    □
+                </span>
+
+                <span>
+                    No image selected
+                </span>
+
+            </div>
+
+
+            <img
+                id="selectedSearchImage"
+                alt="Selected search image"
+                hidden>
+
+        </div>
+
+
+
+        <!-- =================================================
+             CAMERA / GALLERY
+        ================================================== -->
+
+        <div class="image-buttons">
+
+
+            <button
+                type="button"
+                class="image-action-button"
+                onclick="openCamera()">
+
+                <span class="action-icon">
+                    ◉
+                </span>
+
+                <span>
+                    Take Photo
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="image-action-button"
+                onclick="openGallery()">
+
+                <span class="action-icon">
+                    ▣
+                </span>
+
+                <span>
+                    Upload Image
+                </span>
+
+            </button>
+
+        </div>
+
+
+
+        <!-- =================================================
+             HIDDEN FILE INPUTS
+        ================================================== -->
+
+        <input
+            type="file"
+            id="cameraInput"
+            accept="image/*"
+            capture="environment"
+            hidden>
+
+
+        <input
+            type="file"
+            id="galleryInput"
+            accept="image/*"
+            hidden>
+
+
+
+        <!-- =================================================
+             CLEAR IMAGE
+        ================================================== -->
+
+        <button
+            type="button"
+            class="clear-image-button"
+            id="clearImageButton"
+            onclick="clearImage()"
+            hidden>
+
+            Remove Selected Image
+
+        </button>
+
+
+
+        <!-- =================================================
+             IMAGE SEARCH
+        ================================================== -->
+
+        <button
+            type="button"
+            class="image-search-button"
+            id="imageSearchButton"
+            onclick="searchByImage()"
+            disabled>
+
+            Search Similar Products
+
+        </button>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         RESULTS
+    ====================================================== -->
+
+    <section class="results-section">
+
+
+        <div class="results-header">
+
+            <div>
+
+                <span class="results-label">
+                    SEARCH RESULTS
+                </span>
+
+                <strong id="resultCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="searchResults"
+            class="search-results">
+
+        </div>
+
+
+
+        <!-- =================================================
+             NO RESULTS
+        ================================================== -->
+
+        <div
+            id="noResults"
+            class="no-results"
+            hidden>
+
+            No matching products found.
+
+        </div>
+
+
+
+        <!-- =================================================
+             LOADING
+        ================================================== -->
+
+        <div
+            id="searchLoading"
+            class="no-results"
+            hidden>
+
+            Searching...
+
+        </div>
+
+
+
+        <!-- =================================================
+             ERROR
+        ================================================== -->
+
+        <div
+            id="searchError"
+            class="no-results"
+            hidden>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer>
+
+        RK Product Manager
+
+    </footer>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     SUPABASE
+========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase.js"></script>
+
+
+
+<!-- =========================================================
+     SEARCH JAVASCRIPT
+
+     IMPORTANT:
+     Do NOT load add.js here.
+     Do NOT separately load Transformers.js here.
+     search.js imports Transformers.js itself.
+========================================================= -->
+
+<script src="search.js"></script>
+
+
+
+
+<script>
+if ("serviceWorker" in navigator) {
+
+    window.addEventListener("load", () => {
+
+        navigator.serviceWorker
+            .register("./sw.js")
+            .then(registration => {
+
+                console.log(
+                    "[PWA] Service Worker registered:",
+                    registration.scope
+                );
+
+                registration.update();
+
+            })
+            .catch(error => {
+
+                console.error(
+                    "[PWA] Service Worker registration failed:",
+                    error
+                );
+
+            });
+
+    });
+}
+</script>
+
+
+
+
+</body>
+
+</html>
