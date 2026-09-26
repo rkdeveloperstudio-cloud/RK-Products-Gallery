@@ -1,4 +1,4 @@
-const CACHE_VERSION = "rk-products-v1";
+const CACHE_VERSION = "rk-products-v2";
 
 const APP_SHELL = [
     "./",
@@ -16,7 +16,7 @@ const APP_SHELL = [
     "./Add.js",
     "./List.js",
     "./Search.js",
-    "./Supabase.js",
+    "./supabase.js",
 
     "./manifest.webmanifest"
 ];

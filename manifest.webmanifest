@@ -1,6 +1,6 @@
 {
-    "name": "RK Product Gallery",
-    "short_name": "RK Products Gallery",
+    "name": "RK Product Manager",
+    "short_name": "RK Products",
     "description": "Product management PWA for shop inventory.",
     "start_url": "./index.html",
     "scope": "./",
