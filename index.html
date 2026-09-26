@@ -1,0 +1,309 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color"
+          content="#e9eef3">
+
+    <meta name="description"
+          content="RK Product  Manager">
+
+    <title>RK Products</title>
+
+    <!-- Font -->
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet"
+          href="style.css">
+
+
+
+<link
+    rel="manifest"
+    href="./manifest.webmanifest"
+>
+<meta
+    name="theme-color"
+    content="#e9eef3"
+>
+<meta
+    name="mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+>
+<meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+>
+
+
+
+
+</head>
+
+
+<body>
+
+    <div class="app-shell">
+
+
+        <!-- =========================================
+             HEADER
+        ========================================== -->
+
+        <header class="top-bar">
+
+            <div class="brand">
+
+                <div class="brand-logo">
+                    RK
+                </div>
+
+                <div class="brand-info">
+
+                    <h1>
+                        RK
+                    </h1>
+
+                    <span>
+                        Product Manager
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================================
+             MAIN
+        ========================================== -->
+
+        <main>
+
+
+            <!-- =====================================
+                 HERO
+            ====================================== -->
+
+            <section class="hero">
+
+                <div class="hero-label">
+                   RK INVENTORY
+                </div>
+
+                <h2>
+                    Manage your<br>
+                    products easily.
+                </h2>
+
+                <p>
+                    Add products, browse your collection
+                    and find items quickly.
+                </p>
+
+            </section>
+
+
+
+            <!-- =====================================
+                 MENU
+            ====================================== -->
+
+            <section class="menu">
+
+
+                <!-- ADD PRODUCT -->
+
+                <button class="action-card"
+                        type="button"
+                        onclick="openPage('add.html')">
+
+                    <div class="action-icon">
+
+                        <span class="plus">
+                            +
+                        </span>
+
+                    </div>
+
+                    <div class="action-text">
+
+                        <span class="action-title">
+                            Add Product
+                        </span>
+
+                        <span class="action-description">
+                            Add image, barcode and style number
+                        </span>
+
+                    </div>
+
+                    <div class="action-arrow">
+                        →
+                    </div>
+
+                </button>
+
+
+
+                <!-- PRODUCT LIST -->
+
+                <button class="action-card"
+                        type="button"
+                        onclick="openPage('list.html')">
+
+                    <div class="action-icon">
+
+                        <span class="list-symbol">
+                            ☷
+                        </span>
+
+                    </div>
+
+                    <div class="action-text">
+
+                        <span class="action-title">
+                            Product List
+                        </span>
+
+                        <span class="action-description">
+                            Browse all your products
+                        </span>
+
+                    </div>
+
+                    <div class="action-arrow">
+                        →
+                    </div>
+
+                </button>
+
+
+
+                <!-- SEARCH -->
+
+                <button class="action-card"
+                        type="button"
+                        onclick="openPage('search.html')">
+
+                    <div class="action-icon">
+
+                        <span class="search-symbol">
+                            ⌕
+                        </span>
+
+                    </div>
+
+                    <div class="action-text">
+
+                        <span class="action-title">
+                            Search
+                        </span>
+
+                        <span class="action-description">
+                            Find by barcode or style number
+                        </span>
+
+                    </div>
+
+                    <div class="action-arrow">
+                        →
+                    </div>
+
+                </button>
+
+
+            </section>
+
+        </main>
+
+
+
+        <!-- =========================================
+             FOOTER
+        ========================================== -->
+
+        <footer>
+
+            <span>
+                RK Product Manager
+            </span>
+
+            <span class="footer-separator">
+                •
+            </span>
+
+            <span>
+                PWA
+            </span>
+
+        </footer>
+
+
+    </div>
+
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+
+
+
+
+<script>
+if ("serviceWorker" in navigator) {
+
+    window.addEventListener("load", () => {
+
+        navigator.serviceWorker
+            .register("./sw.js")
+            .then(registration => {
+
+                console.log(
+                    "[PWA] Service Worker registered:",
+                    registration.scope
+                );
+
+                registration.update();
+
+            })
+            .catch(error => {
+
+                console.error(
+                    "[PWA] Service Worker registration failed:",
+                    error
+                );
+
+            });
+
+    });
+}
+</script>
+
+
+
+</body>
+
+</html>
+

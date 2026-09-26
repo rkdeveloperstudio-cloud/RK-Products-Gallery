@@ -367,7 +367,7 @@ document.addEventListener(
 function goHome() {
 
     window.location.href =
-        "Index.html";
+        "index.html";
 
 }
 

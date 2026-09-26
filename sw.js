@@ -2,7 +2,7 @@ const CACHE_VERSION = "rk-products-v1";
 
 const APP_SHELL = [
     "./",
-    "./Index.html",
+    "./index.html",
     "./Add.html",
     "./List.html",
     "./Search.html",

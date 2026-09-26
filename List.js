@@ -2512,7 +2512,7 @@ function showError(
 function goHome() {
 
     window.location.href =
-        "Index.html";
+        "index.html";
 
 }
 

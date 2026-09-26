@@ -268,7 +268,7 @@ window.goHome = function () {
 
     console.log("GO HOME");
 
-    window.location.href = "Index.html";
+    window.location.href = "index.html";
 
 };
 
