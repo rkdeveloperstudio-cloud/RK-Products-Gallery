@@ -19,7 +19,7 @@ const IMAGE_BUCKET = "product-images";
 const IMAGE_MODEL =
     "Xenova/clip-vit-base-patch32";
 
-const SIMILARITY_THRESHOLD = 0.75;
+const SIMILARITY_THRESHOLD = 0.50;
 
 const RESULT_LIMIT = 12;
 
