@@ -7,16 +7,16 @@ const APP_SHELL = [
     "./List.html",
     "./Search.html",
 
-    "./style.css",
+    "./Style.css",
     "./Add.css",
     "./List.css",
     "./Search.css",
 
-    "./app.js",
-    "./add.js",
-    "./list.js",
-    "./search.js",
-    "./supabase.js",
+    "./App.js",
+    "./Add.js",
+    "./List.js",
+    "./Search.js",
+    "./Supabase.js",
 
     "./manifest.webmanifest"
 ];
