@@ -16,7 +16,8 @@ const PRODUCTS_TABLE = "productsImages";
 
 const IMAGE_BUCKET = "product-images";
 
-const IMAGE_MODEL = "Xenova/clip-vit-base-patch32";
+const IMAGE_MODEL =
+    "Xenova/clip-vit-base-patch32";
 
 const SIMILARITY_THRESHOLD = 0.75;
 
@@ -27,17 +28,8 @@ const RESULT_LIMIT = 12;
    SUPABASE
 ========================================================= */
 
-/*
-   IMPORTANT:
-   supabase.js creates:
-
-   window.supabaseClient
-
-   We use a different local variable name here
-   to avoid duplicate declaration errors.
-*/
-
-const db = window.supabaseClient;
+const db =
+    window.supabaseClient;
 
 
 /* =========================================================
@@ -98,6 +90,19 @@ let previewObjectUrl = null;
 
 
 /* =========================================================
+   BARCODE SCANNER STATE
+========================================================= */
+
+let barcodeReader = null;
+
+let barcodeScannerControls = null;
+
+let barcodeScanning = false;
+
+let barcodeScanSession = 0;
+
+
+/* =========================================================
    CAMERA
 ========================================================= */
 
@@ -107,6 +112,7 @@ window.openCamera = function () {
 
     clearError();
 
+
     if (!cameraInput) {
 
         showError(
@@ -114,7 +120,9 @@ window.openCamera = function () {
         );
 
         return;
+
     }
+
 
     cameraInput.value = "";
 
@@ -133,6 +141,7 @@ window.openGallery = function () {
 
     clearError();
 
+
     if (!galleryInput) {
 
         showError(
@@ -140,7 +149,9 @@ window.openGallery = function () {
         );
 
         return;
+
     }
+
 
     galleryInput.value = "";
 
@@ -268,7 +279,8 @@ window.goHome = function () {
 
     console.log("GO HOME");
 
-    window.location.href = "index.html";
+    window.location.href =
+        "./index.html";
 
 };
 
@@ -329,9 +341,21 @@ function handleImageSelection(event) {
 
 
     console.log("IMAGE SELECTED");
-    console.log("Name:", file.name);
-    console.log("Type:", file.type);
-    console.log("Size:", file.size);
+
+    console.log(
+        "Name:",
+        file.name
+    );
+
+    console.log(
+        "Type:",
+        file.type
+    );
+
+    console.log(
+        "Size:",
+        file.size
+    );
 
 
     showImagePreview(file);
@@ -447,6 +471,7 @@ window.searchProducts = async function () {
     try {
 
         clearResults();
+
 
         showLoading(
             "Searching products..."
@@ -1360,6 +1385,622 @@ function clearError() {
 
 
 /* =========================================================
+   ZXING BARCODE SCANNER
+========================================================= */
+
+/*
+   IMPORTANT:
+
+   This replaces the native BarcodeDetector API.
+
+   ZXing works in browsers where BarcodeDetector
+   is unavailable.
+*/
+
+
+/* =========================================================
+   OPEN BARCODE SCANNER
+========================================================= */
+
+window.openBarcodeScanner =
+async function () {
+
+    console.log(
+        "OPEN BARCODE SCANNER"
+    );
+
+
+    clearError();
+
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    const status =
+        document.getElementById(
+            "barcodeScannerStatus"
+        );
+
+
+    if (!modal || !video) {
+
+        showError(
+            "Barcode scanner interface was not found."
+        );
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       CHECK ZXING
+    ====================================================== */
+
+    if (
+        !window.ZXingBrowser ||
+        typeof
+            window.ZXingBrowser
+                .BrowserMultiFormatReader
+            !== "function"
+    ) {
+
+        showError(
+            "Barcode scanner library is not loaded."
+        );
+
+        console.error(
+            "ZXingBrowser is unavailable."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        /* =================================================
+           STOP PREVIOUS SCANNER
+        ================================================== */
+
+        stopBarcodeScanner();
+
+
+        const session =
+            ++barcodeScanSession;
+
+
+        modal.hidden =
+            false;
+
+
+        if (status) {
+
+            status.textContent =
+                "Starting camera...";
+
+        }
+
+
+        barcodeScanning =
+            true;
+
+
+        /* =================================================
+           CREATE ZXING READER
+        ================================================== */
+
+        barcodeReader =
+            new window.ZXingBrowser
+                .BrowserMultiFormatReader();
+
+
+        console.log(
+            "ZXING READER CREATED"
+        );
+
+
+        /* =================================================
+           START CAMERA
+        ================================================== */
+
+        const controls =
+            await barcodeReader
+                .decodeFromVideoDevice(
+                    undefined,
+                    video,
+                    (
+                        result,
+                        error
+                    ) => {
+
+                        /* =================================
+                           IGNORE OLD SCANNER SESSION
+                        ================================= */
+
+                        if (
+                            session !==
+                            barcodeScanSession
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        if (
+                            !barcodeScanning
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        /* =================================
+                           BARCODE FOUND
+                        ================================= */
+
+                        if (result) {
+
+                            const value =
+                                result
+                                    .getText()
+                                    .trim();
+
+
+                            console.log(
+                                "BARCODE DETECTED:",
+                                value
+                            );
+
+
+                            if (!value) {
+
+                                return;
+
+                            }
+
+
+                            const input =
+                                document.getElementById(
+                                    "barcodeSearch"
+                                );
+
+
+                            if (input) {
+
+                                input.value =
+                                    value;
+
+                            }
+
+
+                            if (status) {
+
+                                status.textContent =
+                                    "Barcode detected.";
+
+                            }
+
+
+                            closeBarcodeScanner();
+
+
+                            /* =============================
+                               AUTOMATIC SEARCH
+                            ============================== */
+
+                            window.searchProducts();
+
+                            return;
+
+                        }
+
+
+                        /* =================================
+                           ZXING NORMAL SCANNING ERRORS
+                           ARE EXPECTED WHILE SEARCHING
+                        ================================= */
+
+                        if (error) {
+
+                            /*
+                               Do not display every
+                               NotFoundException.
+                               ZXing generates these while
+                               simply looking at frames.
+                            */
+
+                            if (
+                                error.name !==
+                                "NotFoundException"
+                            ) {
+
+                                console.debug(
+                                    "ZXING SCAN:",
+                                    error
+                                );
+
+                            }
+
+                        }
+
+                    }
+                );
+
+
+        /* =================================================
+           SCANNER MAY HAVE BEEN CLOSED WHILE STARTING
+        ================================================== */
+
+        if (
+            session !==
+            barcodeScanSession ||
+            !barcodeScanning
+        ) {
+
+            if (
+                controls &&
+                typeof controls.stop ===
+                    "function"
+            ) {
+
+                controls.stop();
+
+            }
+
+            return;
+
+        }
+
+
+        barcodeScannerControls =
+            controls;
+
+
+        if (status) {
+
+            status.textContent =
+                "Point the camera at a barcode";
+
+        }
+
+
+        console.log(
+            "ZXING BARCODE SCANNER READY"
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "ZXING BARCODE CAMERA ERROR:",
+            error
+        );
+
+
+        if (status) {
+
+            status.textContent =
+                getBarcodeCameraErrorMessage(
+                    error
+                );
+
+        }
+
+
+        stopBarcodeScanner();
+
+    }
+
+};
+
+
+/* =========================================================
+   BARCODE CAMERA ERROR MESSAGE
+========================================================= */
+
+function getBarcodeCameraErrorMessage(error) {
+
+    if (!error) {
+
+        return "Camera could not be started.";
+
+    }
+
+
+    if (
+        error.name ===
+        "NotAllowedError"
+    ) {
+
+        return (
+            "Camera permission was denied. " +
+            "Please allow camera access."
+        );
+
+    }
+
+
+    if (
+        error.name ===
+        "NotFoundError"
+    ) {
+
+        return (
+            "No camera was found on this device."
+        );
+
+    }
+
+
+    if (
+        error.name ===
+        "NotReadableError"
+    ) {
+
+        return (
+            "The camera is already being used " +
+            "by another application."
+        );
+
+    }
+
+
+    if (
+        error.name ===
+        "SecurityError"
+    ) {
+
+        return (
+            "Camera access is blocked by the browser."
+        );
+
+    }
+
+
+    return (
+        "Camera could not be started. " +
+        "Please check camera permission."
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE BARCODE SCANNER
+========================================================= */
+
+window.closeBarcodeScanner =
+function () {
+
+    console.log(
+        "CLOSE BARCODE SCANNER"
+    );
+
+
+    barcodeScanning =
+        false;
+
+
+    stopBarcodeScanner();
+
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
+    if (modal) {
+
+        modal.hidden =
+            true;
+
+    }
+
+};
+
+
+/* =========================================================
+   STOP ZXING SCANNER
+========================================================= */
+
+function stopBarcodeScanner() {
+
+    console.log(
+        "STOP BARCODE SCANNER"
+    );
+
+
+    barcodeScanning =
+        false;
+
+
+    /*
+       Invalidate the current
+       scanner session.
+    */
+
+    barcodeScanSession++;
+
+
+    /* =====================================================
+       STOP ZXING CONTROLS
+    ====================================================== */
+
+    if (
+        barcodeScannerControls &&
+        typeof
+            barcodeScannerControls.stop ===
+                "function"
+    ) {
+
+        try {
+
+            barcodeScannerControls.stop();
+
+        }
+        catch (error) {
+
+            console.warn(
+                "ZXING STOP ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+
+    barcodeScannerControls =
+        null;
+
+
+    /* =====================================================
+       RESET READER
+    ====================================================== */
+
+    if (
+        barcodeReader &&
+        typeof barcodeReader.reset ===
+            "function"
+    ) {
+
+        try {
+
+            barcodeReader.reset();
+
+        }
+        catch (error) {
+
+            console.warn(
+                "ZXING RESET ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+
+    barcodeReader =
+        null;
+
+
+    /* =====================================================
+       CLEAR VIDEO
+    ====================================================== */
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (video) {
+
+        try {
+
+            video.pause();
+
+        }
+        catch (error) {
+
+            // Ignore pause errors.
+
+        }
+
+
+        /*
+           If ZXing attached a stream,
+           release all tracks.
+        */
+
+        if (video.srcObject) {
+
+            try {
+
+                const stream =
+                    video.srcObject;
+
+
+                if (
+                    stream &&
+                    typeof stream.getTracks ===
+                        "function"
+                ) {
+
+                    stream
+                        .getTracks()
+                        .forEach(
+                            track => {
+
+                                try {
+
+                                    track.stop();
+
+                                }
+                                catch (
+                                    error
+                                ) {
+
+                                    // Ignore.
+
+                                }
+
+                            }
+                        );
+
+                }
+
+            }
+            catch (error) {
+
+                console.warn(
+                    "VIDEO STREAM CLEANUP ERROR:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        video.srcObject =
+            null;
+
+    }
+
+}
+
+
+/* =========================================================
+   PAGE CLEANUP
+========================================================= */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        stopBarcodeScanner();
+
+    }
+);
+
+
+/* =========================================================
    FINAL INITIALIZATION
 ========================================================= */
 
@@ -1417,6 +2058,24 @@ console.log(
 
 
 console.log(
+    "openBarcodeScanner:",
+    typeof window.openBarcodeScanner
+);
+
+
+console.log(
+    "closeBarcodeScanner:",
+    typeof window.closeBarcodeScanner
+);
+
+
+console.log(
+    "ZXing Browser:",
+    !!window.ZXingBrowser
+);
+
+
+console.log(
     "Supabase DB:",
     !!db
 );
@@ -1435,317 +2094,3 @@ console.log(
 console.log(
     "========================================"
 );
-
-
-/* =========================================================
-   BARCODE SCANNER
-========================================================= */
-
-let barcodeStream = null;
-
-let barcodeDetector = null;
-
-let barcodeScanning = false;
-
-
-/* =========================================================
-   OPEN BARCODE SCANNER
-========================================================= */
-
-window.openBarcodeScanner = async function () {
-
-    console.log("OPEN BARCODE SCANNER");
-
-    clearError();
-
-    const modal =
-        document.getElementById(
-            "barcodeScannerModal"
-        );
-
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-    const status =
-        document.getElementById(
-            "barcodeScannerStatus"
-        );
-
-
-    if (!modal || !video) {
-
-        showError(
-            "Barcode scanner interface was not found."
-        );
-
-        return;
-
-    }
-
-
-    if (
-        !("BarcodeDetector" in window)
-    ) {
-
-        showError(
-            "Barcode scanning is not supported by this browser."
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        modal.hidden = false;
-
-
-        status.textContent =
-            "Starting camera...";
-
-
-        barcodeDetector =
-            new BarcodeDetector({
-                formats: [
-                    "ean_13",
-                    "ean_8",
-                    "upc_a",
-                    "upc_e",
-                    "code_128",
-                    "code_39",
-                    "code_93",
-                    "itf",
-                    "codabar"
-                ]
-            });
-
-
-        barcodeStream =
-            await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: {
-                        ideal: "environment"
-                    }
-                },
-                audio: false
-            });
-
-
-        video.srcObject =
-            barcodeStream;
-
-
-        await video.play();
-
-
-        status.textContent =
-            "Point the camera at a barcode";
-
-
-        barcodeScanning = true;
-
-
-        scanBarcode();
-
-    }
-    catch (error) {
-
-        console.error(
-            "BARCODE CAMERA ERROR:",
-            error
-        );
-
-
-        status.textContent =
-            "Camera could not be started.";
-
-
-        stopBarcodeCamera();
-
-    }
-
-};
-
-
-/* =========================================================
-   SCAN LOOP
-========================================================= */
-
-async function scanBarcode() {
-
-    if (!barcodeScanning) {
-
-        return;
-
-    }
-
-
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-
-    if (
-        !video ||
-        video.readyState <
-        HTMLMediaElement.HAVE_ENOUGH_DATA
-    ) {
-
-        requestAnimationFrame(
-            scanBarcode
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        const barcodes =
-            await barcodeDetector.detect(
-                video
-            );
-
-
-        if (barcodes.length > 0) {
-
-            const barcode =
-                barcodes[0].rawValue;
-
-
-            console.log(
-                "BARCODE DETECTED:",
-                barcode
-            );
-
-
-            if (barcode) {
-
-                const barcodeInput =
-                    document.getElementById(
-                        "barcodeSearch"
-                    );
-
-
-                if (barcodeInput) {
-
-                    barcodeInput.value =
-                        barcode;
-
-                }
-
-
-                const status =
-                    document.getElementById(
-                        "barcodeScannerStatus"
-                    );
-
-
-                if (status) {
-
-                    status.textContent =
-                        "Barcode detected.";
-
-                }
-
-
-                closeBarcodeScanner();
-
-
-                // Automatically search
-                searchProducts();
-
-
-                return;
-
-            }
-
-        }
-
-    }
-    catch (error) {
-
-        console.error(
-            "BARCODE DETECTION ERROR:",
-            error
-        );
-
-    }
-
-
-    requestAnimationFrame(
-        scanBarcode
-    );
-
-}
-
-
-/* =========================================================
-   CLOSE BARCODE SCANNER
-========================================================= */
-
-window.closeBarcodeScanner = function () {
-
-    console.log(
-        "CLOSE BARCODE SCANNER"
-    );
-
-
-    barcodeScanning = false;
-
-
-    stopBarcodeCamera();
-
-
-    const modal =
-        document.getElementById(
-            "barcodeScannerModal"
-        );
-
-
-    if (modal) {
-
-        modal.hidden = true;
-
-    }
-
-};
-
-
-/* =========================================================
-   STOP CAMERA
-========================================================= */
-
-function stopBarcodeCamera() {
-
-    if (barcodeStream) {
-
-        barcodeStream
-            .getTracks()
-            .forEach(
-                track => track.stop()
-            );
-
-        barcodeStream = null;
-
-    }
-
-
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-
-    if (video) {
-
-        video.srcObject = null;
-
-    }
-
-}

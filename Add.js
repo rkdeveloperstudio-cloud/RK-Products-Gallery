@@ -1,7 +1,7 @@
 
 /* =========================================================
    ADD PRODUCT JAVASCRIPT
-   SUPABASE + CLIP IMAGE EMBEDDING
+   SUPABASE + CLIP IMAGE EMBEDDING + ZXING BARCODE SCANNER
 
    FEATURES:
    - Camera
@@ -11,6 +11,8 @@
    - WebP conversion
    - Image compression
    - Maximum approximately 150 KB target
+   - Manual barcode entry
+   - Camera barcode scanning using ZXing
    - Barcode validation
    - Duplicate barcode checking
    - Supabase Storage upload
@@ -22,7 +24,9 @@
 ========================================================= */
 
 
-console.log("ADD.JS LOADED SUCCESSFULLY");
+console.log(
+    "ADD.JS LOADED SUCCESSFULLY"
+);
 
 
 /* =========================================================
@@ -40,18 +44,23 @@ let toastTimer = null;
    IMAGE SETTINGS
 ========================================================= */
 
-const IMAGE_MAX_WIDTH = 800;
+const IMAGE_MAX_WIDTH =
+    800;
 
-const IMAGE_MAX_HEIGHT = 800;
+const IMAGE_MAX_HEIGHT =
+    800;
 
 const IMAGE_TARGET_SIZE =
     150 * 1024; // Approximately 150 KB
 
-const IMAGE_START_QUALITY = 0.72;
+const IMAGE_START_QUALITY =
+    0.72;
 
-const IMAGE_MIN_QUALITY = 0.35;
+const IMAGE_MIN_QUALITY =
+    0.35;
 
-const IMAGE_QUALITY_STEP = 0.07;
+const IMAGE_QUALITY_STEP =
+    0.07;
 
 
 /* =========================================================
@@ -61,7 +70,8 @@ const IMAGE_QUALITY_STEP = 0.07;
 const IMAGE_MODEL =
     "Xenova/clip-vit-base-patch32";
 
-const IMAGE_EMBEDDING_SIZE = 512;
+const IMAGE_EMBEDDING_SIZE =
+    512;
 
 
 /* =========================================================
@@ -104,7 +114,9 @@ function showToast(
 
     /* =============================================
        FALLBACK
-       If toast HTML is missing, don't use alert.
+
+       If toast HTML is missing,
+       don't use alert().
     ============================================= */
 
     if (
@@ -448,7 +460,9 @@ function openGallery() {
    SHOW SELECTED IMAGE
 ========================================================= */
 
-function showImage(file) {
+function showImage(
+    file
+) {
 
     if (
         !file
@@ -575,296 +589,67 @@ function showImage(file) {
 
 /* =========================================================
    BARCODE SCANNER
+   ZXING VERSION
 ========================================================= */
 
-let barcodeStream = null;
+/*
+   The actual camera/scanning code is in:
 
-let barcodeDetector = null;
+       barcode-scanner.js
 
-let barcodeScanning = false;
+   This function connects the Add page
+   barcode input to the shared scanner.
+*/
 
-
-/* =========================================================
-   START BARCODE SCANNER
-========================================================= */
-
-async function scanBarcode() {
+function scanBarcode() {
 
     console.log(
         "START BARCODE SCANNER"
     );
 
 
-    const modal =
-        document.getElementById(
-            "barcodeScannerModal"
+    /* =============================================
+       CHECK SHARED SCANNER
+    ============================================= */
+
+    if (
+        !window.RKBarcodeScanner
+    ) {
+
+        console.error(
+            "RKBarcodeScanner is not loaded."
         );
 
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-    const status =
-        document.getElementById(
-            "barcodeScannerStatus"
-        );
-
-
-    if (!modal || !video) {
 
         showToast(
-            "Barcode scanner interface is unavailable.",
+            "Barcode scanner is not loaded.",
             "error",
             "Scanner error"
         );
 
-        return;
-
-    }
-
-
-    /* =====================================================
-       CHECK BROWSER SUPPORT
-    ===================================================== */
-
-    if (
-        !("BarcodeDetector" in window)
-    ) {
-
-        showToast(
-            "Barcode scanning is not supported by this browser.",
-            "error",
-            "Scanner unavailable"
-        );
 
         return;
 
     }
 
 
-    try {
+    /* =============================================
+       START SCANNER
 
-        modal.hidden = false;
+       The detected barcode will be placed into:
 
+           #barcode
+    ============================================= */
 
-        status.textContent =
-            "Starting camera...";
-
-
-        /* =================================================
-           CREATE DETECTOR
-        ================================================= */
-
-        barcodeDetector =
-            new BarcodeDetector({
-
-                formats: [
-
-                    "ean_13",
-
-                    "ean_8",
-
-                    "upc_a",
-
-                    "upc_e",
-
-                    "code_128",
-
-                    "code_39",
-
-                    "code_93",
-
-                    "itf",
-
-                    "codabar"
-
-                ]
-
-            });
-
-
-        /* =================================================
-           OPEN REAR CAMERA
-        ================================================= */
-
-        barcodeStream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-
-                    facingMode: {
-                        ideal: "environment"
-                    }
-
-                },
-
-                audio: false
-
-            });
-
-
-        video.srcObject =
-            barcodeStream;
-
-
-        await video.play();
-
-
-        status.textContent =
-            "Point the camera at the barcode";
-
-
-        barcodeScanning =
-            true;
-
-
-        scanBarcodeFrame();
-
-    }
-    catch (error) {
-
-        console.error(
-            "BARCODE CAMERA ERROR:",
-            error
-        );
-
-
-        stopBarcodeScanner();
-
-
-        if (modal) {
-
-            modal.hidden =
-                true;
-
-        }
-
-
-        showToast(
-            "Unable to access the camera. Please allow camera permission.",
-            "error",
-            "Camera error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   DETECTION LOOP
-========================================================= */
-
-async function scanBarcodeFrame() {
-
-    if (!barcodeScanning) {
-
-        return;
-
-    }
-
-
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-
-    if (
-        !video ||
-        video.readyState <
-        HTMLMediaElement.HAVE_ENOUGH_DATA
-    ) {
-
-        requestAnimationFrame(
-            scanBarcodeFrame
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        const detected =
-            await barcodeDetector.detect(
-                video
-            );
-
-
-        if (
-            detected.length > 0
-        ) {
-
-            const barcode =
-                detected[0].rawValue;
-
-
-            console.log(
-                "BARCODE DETECTED:",
-                barcode
-            );
-
-
-            if (barcode) {
-
-                const barcodeInput =
-                    document.getElementById(
-                        "barcode"
-                    );
-
-
-                if (barcodeInput) {
-
-                    barcodeInput.value =
-                        barcode;
-
-
-                    barcodeInput.focus();
-
-                }
-
-
-                closeBarcodeScanner();
-
-
-                showToast(
-                    "Barcode " +
-                    barcode +
-                    " was scanned successfully.",
-                    "success",
-                    "Barcode scanned"
-                );
-
-
-                return;
-
-            }
-
-        }
-
-    }
-    catch (error) {
-
-        console.error(
-            "BARCODE DETECTION ERROR:",
-            error
-        );
-
-    }
-
-
-    requestAnimationFrame(
-        scanBarcodeFrame
+    window.RKBarcodeScanner.start(
+        "barcode"
     );
 
 }
 
 
 /* =========================================================
-   CLOSE SCANNER
+   CLOSE BARCODE SCANNER
 ========================================================= */
 
 function closeBarcodeScanner() {
@@ -874,63 +659,17 @@ function closeBarcodeScanner() {
     );
 
 
-    barcodeScanning =
-        false;
+    if (
+        window.RKBarcodeScanner
+    ) {
 
-
-    stopBarcodeScanner();
-
-
-    const modal =
-        document.getElementById(
-            "barcodeScannerModal"
-        );
-
-
-    if (modal) {
-
-        modal.hidden =
-            true;
+        window.RKBarcodeScanner.close();
 
     }
 
 }
 
 
-/* =========================================================
-   STOP CAMERA
-========================================================= */
-
-function stopBarcodeScanner() {
-
-    if (barcodeStream) {
-
-        barcodeStream
-            .getTracks()
-            .forEach(
-                track => track.stop()
-            );
-
-        barcodeStream =
-            null;
-
-    }
-
-
-    const video =
-        document.getElementById(
-            "barcodeVideo"
-        );
-
-
-    if (video) {
-
-        video.srcObject =
-            null;
-
-    }
-
-}
 /* =========================================================
    LOAD CLIP MODEL
 ========================================================= */
@@ -1032,8 +771,11 @@ async function createImageEmbedding(
         await imageEmbeddingExtractor(
             imageFile,
             {
-                pooling: "mean",
-                normalize: true
+                pooling:
+                    "mean",
+
+                normalize:
+                    true
             }
         );
 
@@ -1130,11 +872,13 @@ async function saveProduct() {
             "One or more form elements were not found."
         );
 
+
         showToast(
             "The product form could not be loaded correctly.",
             "error",
             "Form error"
         );
+
 
         return;
 
@@ -1171,7 +915,9 @@ async function saveProduct() {
             "Barcode required"
         );
 
+
         barcodeInput.focus();
+
 
         return;
 
@@ -1182,7 +928,8 @@ async function saveProduct() {
        PRICE VALIDATION
     ============================================= */
 
-    let price = null;
+    let price =
+        null;
 
 
     if (
@@ -1196,7 +943,9 @@ async function saveProduct() {
 
 
         if (
-            Number.isNaN(price) ||
+            Number.isNaN(
+                price
+            ) ||
             price < 0
         ) {
 
@@ -1206,7 +955,9 @@ async function saveProduct() {
                 "Invalid price"
             );
 
+
             priceInput.focus();
+
 
             return;
 
@@ -1230,9 +981,11 @@ async function saveProduct() {
             "Connection error"
         );
 
+
         console.error(
             "supabaseClient is undefined."
         );
+
 
         return;
 
@@ -1256,13 +1009,15 @@ async function saveProduct() {
         saveButton.disabled =
             true;
 
+
         saveButton.textContent =
             "Checking...";
 
     }
 
 
-    let imagePath = null;
+    let imagePath =
+        null;
 
 
     try {
@@ -1277,19 +1032,27 @@ async function saveProduct() {
 
 
         const {
-            data: existingProducts,
-            error: duplicateError
+            data:
+                existingProducts,
+
+            error:
+                duplicateError
+
         } =
             await supabaseClient
                 .from(
                     "productsImages"
                 )
-                .select("id")
+                .select(
+                    "id"
+                )
                 .eq(
                     "barcode",
                     barcode
                 )
-                .limit(1);
+                .limit(
+                    1
+                );
 
 
         if (
@@ -1312,7 +1075,9 @@ async function saveProduct() {
                 "Duplicate barcode"
             );
 
+
             barcodeInput.focus();
+
 
             return;
 
@@ -1333,6 +1098,7 @@ async function saveProduct() {
 
         let compressedImage =
             null;
+
 
         let imageEmbedding =
             null;
@@ -1456,7 +1222,9 @@ async function saveProduct() {
 
 
             const {
-                error: uploadError
+                error:
+                    uploadError
+
             } =
                 await supabaseClient
                     .storage
@@ -1515,8 +1283,12 @@ async function saveProduct() {
 
 
         const {
-            data: productData,
-            error: productError
+            data:
+                productData,
+
+            error:
+                productError
+
         } =
             await supabaseClient
                 .from(
@@ -1611,7 +1383,6 @@ async function saveProduct() {
 
         clearForm();
 
-
     }
     catch (
         error
@@ -1683,6 +1454,7 @@ async function saveProduct() {
 
             saveButton.disabled =
                 false;
+
 
             saveButton.textContent =
                 "Save Product";
@@ -2001,6 +1773,7 @@ function canvasToWebP(
                             )
                         );
 
+
                         return;
 
                     }
@@ -2207,4 +1980,13 @@ function clearForm() {
     }
 
 }
+
+
+/* =========================================================
+   END OF ADD.JS
+========================================================= */
+
+console.log(
+    "ADD.JS READY"
+);
 
