@@ -1,4 +1,3 @@
-
 /* =========================================================
    ADD PRODUCT JAVASCRIPT
    SUPABASE + CLIP IMAGE EMBEDDING + ZXING BARCODE SCANNER
@@ -41,6 +40,17 @@ let toastTimer = null;
 
 
 /* =========================================================
+   ZXING BARCODE SCANNER VARIABLES
+========================================================= */
+
+let barcodeReader = null;
+
+let barcodeScannerControls = null;
+
+let barcodeScanning = false;
+
+
+/* =========================================================
    IMAGE SETTINGS
 ========================================================= */
 
@@ -51,7 +61,7 @@ const IMAGE_MAX_HEIGHT =
     800;
 
 const IMAGE_TARGET_SIZE =
-    150 * 1024; // Approximately 150 KB
+    150 * 1024;
 
 const IMAGE_START_QUALITY =
     0.72;
@@ -77,13 +87,6 @@ const IMAGE_EMBEDDING_SIZE =
 /* =========================================================
    TOAST NOTIFICATION SYSTEM
 ========================================================= */
-
-/*
-   type:
-   - success
-   - error
-   - info
-*/
 
 function showToast(
     message,
@@ -114,9 +117,6 @@ function showToast(
 
     /* =============================================
        FALLBACK
-
-       If toast HTML is missing,
-       don't use alert().
     ============================================= */
 
     if (
@@ -368,6 +368,16 @@ document.addEventListener(
 
         }
 
+
+        /* =============================================
+           CHECK ZXING
+        ============================================= */
+
+        console.log(
+            "ZXing Browser:",
+            !!window.ZXingBrowser
+        );
+
     }
 );
 
@@ -588,20 +598,28 @@ function showImage(
 
 
 /* =========================================================
-   BARCODE SCANNER
-   ZXING VERSION
+   ZXING BARCODE SCANNER
 ========================================================= */
 
 /*
-   The actual camera/scanning code is in:
+   This scanner is handled directly inside Add.js.
 
-       barcode-scanner.js
+   IMPORTANT:
+   Add.html must load:
 
-   This function connects the Add page
-   barcode input to the shared scanner.
+   <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
+
+   BEFORE:
+
+   <script src="./Add.js"></script>
 */
 
-function scanBarcode() {
+
+/* =========================================================
+   START BARCODE SCANNER
+========================================================= */
+
+async function scanBarcode() {
 
     console.log(
         "START BARCODE SCANNER"
@@ -609,20 +627,22 @@ function scanBarcode() {
 
 
     /* =============================================
-       CHECK SHARED SCANNER
+       CHECK ZXING
     ============================================= */
 
     if (
-        !window.RKBarcodeScanner
+        !window.ZXingBrowser ||
+        typeof window.ZXingBrowser.BrowserMultiFormatReader !==
+            "function"
     ) {
 
         console.error(
-            "RKBarcodeScanner is not loaded."
+            "ZXingBrowser is unavailable."
         );
 
 
         showToast(
-            "Barcode scanner is not loaded.",
+            "Barcode scanner library is not loaded.",
             "error",
             "Scanner error"
         );
@@ -634,16 +654,280 @@ function scanBarcode() {
 
 
     /* =============================================
-       START SCANNER
-
-       The detected barcode will be placed into:
-
-           #barcode
+       GET SCANNER ELEMENTS
     ============================================= */
 
-    window.RKBarcodeScanner.start(
-        "barcode"
-    );
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    const status =
+        document.getElementById(
+            "barcodeScannerStatus"
+        );
+
+
+    if (
+        !modal ||
+        !video
+    ) {
+
+        console.error(
+            "Barcode scanner elements were not found."
+        );
+
+
+        showToast(
+            "Barcode scanner interface is unavailable.",
+            "error",
+            "Scanner error"
+        );
+
+
+        return;
+
+    }
+
+
+    /* =============================================
+       STOP PREVIOUS SCANNER
+    ============================================= */
+
+    stopBarcodeScanner();
+
+
+    /* =============================================
+       SHOW MODAL
+    ============================================= */
+
+    modal.hidden =
+        false;
+
+
+    barcodeScanning =
+        true;
+
+
+    if (
+        status
+    ) {
+
+        status.textContent =
+            "Starting camera...";
+
+    }
+
+
+    try {
+
+        console.log(
+            "Creating ZXing reader..."
+        );
+
+
+        /* =========================================
+           CREATE READER
+        ========================================= */
+
+        barcodeReader =
+            new window.ZXingBrowser
+                .BrowserMultiFormatReader();
+
+
+        console.log(
+            "ZXING READER CREATED"
+        );
+
+
+        /* =========================================
+           START CAMERA
+        ========================================= */
+
+        barcodeScannerControls =
+            await barcodeReader
+                .decodeFromVideoDevice(
+                    undefined,
+                    video,
+                    function (
+                        result,
+                        error
+                    ) {
+
+                        /* =========================
+                           SCANNER STOPPED
+                        ========================= */
+
+                        if (
+                            !barcodeScanning
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        /* =========================
+                           BARCODE FOUND
+                        ========================= */
+
+                        if (
+                            result
+                        ) {
+
+                            const value =
+                                result
+                                    .getText()
+                                    .trim();
+
+
+                            console.log(
+                                "BARCODE DETECTED:",
+                                value
+                            );
+
+
+                            if (
+                                value === ""
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            /* =========================
+                               PUT BARCODE INTO INPUT
+                            ========================= */
+
+                            const barcodeInput =
+                                document.getElementById(
+                                    "barcode"
+                                );
+
+
+                            if (
+                                barcodeInput
+                            ) {
+
+                                barcodeInput.value =
+                                    value;
+
+                            }
+
+
+                            /* =========================
+                               UPDATE STATUS
+                            ========================= */
+
+                            if (
+                                status
+                            ) {
+
+                                status.textContent =
+                                    "Barcode detected.";
+
+                            }
+
+
+                            /* =========================
+                               CLOSE SCANNER
+                            ========================= */
+
+                            closeBarcodeScanner();
+
+
+                            /* =========================
+                               FOCUS INPUT
+                            ========================= */
+
+                            if (
+                                barcodeInput
+                            ) {
+
+                                barcodeInput.focus();
+
+                            }
+
+
+                            return;
+
+                        }
+
+
+                        /* =========================
+                           NORMAL SCANNING ERROR
+
+                           NotFoundException is normal
+                           while searching for a barcode.
+                        ========================= */
+
+                        if (
+                            error &&
+                            error.name !==
+                                "NotFoundException"
+                        ) {
+
+                            console.debug(
+                                "ZXING SCAN:",
+                                error
+                            );
+
+                        }
+
+                    }
+                );
+
+
+        console.log(
+            "ZXING BARCODE SCANNER READY"
+        );
+
+
+        if (
+            status
+        ) {
+
+            status.textContent =
+                "Point the camera at a barcode.";
+
+        }
+
+    }
+    catch (
+        error
+    ) {
+
+        console.error(
+            "BARCODE SCANNER ERROR:",
+            error
+        );
+
+
+        barcodeScanning =
+            false;
+
+
+        modal.hidden =
+            true;
+
+
+        showToast(
+            getBarcodeScannerErrorMessage(
+                error
+            ),
+            "error",
+            "Camera error"
+        );
+
+    }
 
 }
 
@@ -659,15 +943,221 @@ function closeBarcodeScanner() {
     );
 
 
+    stopBarcodeScanner();
+
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
     if (
-        window.RKBarcodeScanner
+        modal
     ) {
 
-        window.RKBarcodeScanner.close();
+        modal.hidden =
+            true;
 
     }
 
 }
+
+
+/* =========================================================
+   STOP BARCODE SCANNER
+========================================================= */
+
+function stopBarcodeScanner() {
+
+    barcodeScanning =
+        false;
+
+
+    /* =============================================
+       STOP ZXING CONTROLS
+    ============================================= */
+
+    if (
+        barcodeScannerControls
+    ) {
+
+        try {
+
+            barcodeScannerControls.stop();
+
+        }
+        catch (
+            error
+        ) {
+
+            console.debug(
+                "ZXING STOP ERROR:",
+                error
+            );
+
+        }
+
+
+        barcodeScannerControls =
+            null;
+
+    }
+
+
+    /* =============================================
+       RESET ZXING READER
+    ============================================= */
+
+    if (
+        barcodeReader
+    ) {
+
+        try {
+
+            if (
+                typeof barcodeReader.reset ===
+                    "function"
+            ) {
+
+                barcodeReader.reset();
+
+            }
+
+        }
+        catch (
+            error
+        ) {
+
+            console.debug(
+                "ZXING RESET ERROR:",
+                error
+            );
+
+        }
+
+
+        barcodeReader =
+            null;
+
+    }
+
+
+    /* =============================================
+       STOP VIDEO STREAM
+    ============================================= */
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (
+        video &&
+        video.srcObject
+    ) {
+
+        const tracks =
+            video.srcObject.getTracks();
+
+
+        tracks.forEach(
+            function (
+                track
+            ) {
+
+                track.stop();
+
+            }
+        );
+
+
+        video.srcObject =
+            null;
+
+    }
+
+}
+
+
+/* =========================================================
+   BARCODE SCANNER ERROR MESSAGE
+========================================================= */
+
+function getBarcodeScannerErrorMessage(
+    error
+) {
+
+    if (
+        !error
+    ) {
+
+        return "Unable to start the barcode scanner.";
+
+    }
+
+
+    if (
+        error.name ===
+            "NotAllowedError"
+    ) {
+
+        return "Camera permission was denied. Please allow camera access.";
+
+    }
+
+
+    if (
+        error.name ===
+            "NotFoundError"
+    ) {
+
+        return "No camera was found on this device.";
+
+    }
+
+
+    if (
+        error.name ===
+            "NotReadableError"
+    ) {
+
+        return "The camera is already being used by another application.";
+
+    }
+
+
+    if (
+        error.name ===
+            "OverconstrainedError"
+    ) {
+
+        return "The selected camera is not available.";
+
+    }
+
+
+    return (
+        error.message ||
+        "Unable to start the barcode scanner."
+    );
+
+}
+
+
+/* =========================================================
+   PAGE EXIT CLEANUP
+========================================================= */
+
+window.addEventListener(
+    "pagehide",
+    function () {
+
+        stopBarcodeScanner();
+
+    }
+);
 
 
 /* =========================================================
@@ -694,12 +1184,9 @@ async function loadImageEmbeddingModel() {
     );
 
 
-    /*
-       Transformers.js is loaded dynamically.
-
-       This avoids loading the large model
-       when the user only opens the Add page.
-    */
+    /* =============================================
+       LOAD TRANSFORMERS.JS
+    ============================================= */
 
     const transformers =
         await import(
@@ -717,6 +1204,10 @@ async function loadImageEmbeddingModel() {
 
     }
 
+
+    /* =============================================
+       CREATE IMAGE FEATURE EXTRACTOR
+    ============================================= */
 
     imageEmbeddingExtractor =
         await transformers.pipeline(
@@ -1169,8 +1660,6 @@ async function saveProduct() {
 
 
             /*
-               IMPORTANT:
-
                Generate the embedding from the
                SAME compressed WebP file that
                will be uploaded to Storage.
@@ -1394,10 +1883,9 @@ async function saveProduct() {
         );
 
 
-        /*
-           If something fails after the Storage
-           upload, remove the uploaded image.
-        */
+        /* =========================================
+           REMOVE UPLOADED IMAGE AFTER ERROR
+        ========================================= */
 
         if (
             imagePath
@@ -1562,8 +2050,6 @@ async function compressImage(
 
     /* =============================================
        WHITE BACKGROUND
-
-       Useful for transparent PNG images.
     ============================================= */
 
     context.fillStyle =
@@ -1989,4 +2475,3 @@ function clearForm() {
 console.log(
     "ADD.JS READY"
 );
-
