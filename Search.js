@@ -1435,3 +1435,317 @@ console.log(
 console.log(
     "========================================"
 );
+
+
+/* =========================================================
+   BARCODE SCANNER
+========================================================= */
+
+let barcodeStream = null;
+
+let barcodeDetector = null;
+
+let barcodeScanning = false;
+
+
+/* =========================================================
+   OPEN BARCODE SCANNER
+========================================================= */
+
+window.openBarcodeScanner = async function () {
+
+    console.log("OPEN BARCODE SCANNER");
+
+    clearError();
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+    const status =
+        document.getElementById(
+            "barcodeScannerStatus"
+        );
+
+
+    if (!modal || !video) {
+
+        showError(
+            "Barcode scanner interface was not found."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !("BarcodeDetector" in window)
+    ) {
+
+        showError(
+            "Barcode scanning is not supported by this browser."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        modal.hidden = false;
+
+
+        status.textContent =
+            "Starting camera...";
+
+
+        barcodeDetector =
+            new BarcodeDetector({
+                formats: [
+                    "ean_13",
+                    "ean_8",
+                    "upc_a",
+                    "upc_e",
+                    "code_128",
+                    "code_39",
+                    "code_93",
+                    "itf",
+                    "codabar"
+                ]
+            });
+
+
+        barcodeStream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: "environment"
+                    }
+                },
+                audio: false
+            });
+
+
+        video.srcObject =
+            barcodeStream;
+
+
+        await video.play();
+
+
+        status.textContent =
+            "Point the camera at a barcode";
+
+
+        barcodeScanning = true;
+
+
+        scanBarcode();
+
+    }
+    catch (error) {
+
+        console.error(
+            "BARCODE CAMERA ERROR:",
+            error
+        );
+
+
+        status.textContent =
+            "Camera could not be started.";
+
+
+        stopBarcodeCamera();
+
+    }
+
+};
+
+
+/* =========================================================
+   SCAN LOOP
+========================================================= */
+
+async function scanBarcode() {
+
+    if (!barcodeScanning) {
+
+        return;
+
+    }
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (
+        !video ||
+        video.readyState <
+        HTMLMediaElement.HAVE_ENOUGH_DATA
+    ) {
+
+        requestAnimationFrame(
+            scanBarcode
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const barcodes =
+            await barcodeDetector.detect(
+                video
+            );
+
+
+        if (barcodes.length > 0) {
+
+            const barcode =
+                barcodes[0].rawValue;
+
+
+            console.log(
+                "BARCODE DETECTED:",
+                barcode
+            );
+
+
+            if (barcode) {
+
+                const barcodeInput =
+                    document.getElementById(
+                        "barcodeSearch"
+                    );
+
+
+                if (barcodeInput) {
+
+                    barcodeInput.value =
+                        barcode;
+
+                }
+
+
+                const status =
+                    document.getElementById(
+                        "barcodeScannerStatus"
+                    );
+
+
+                if (status) {
+
+                    status.textContent =
+                        "Barcode detected.";
+
+                }
+
+
+                closeBarcodeScanner();
+
+
+                // Automatically search
+                searchProducts();
+
+
+                return;
+
+            }
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "BARCODE DETECTION ERROR:",
+            error
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        scanBarcode
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE BARCODE SCANNER
+========================================================= */
+
+window.closeBarcodeScanner = function () {
+
+    console.log(
+        "CLOSE BARCODE SCANNER"
+    );
+
+
+    barcodeScanning = false;
+
+
+    stopBarcodeCamera();
+
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
+    if (modal) {
+
+        modal.hidden = true;
+
+    }
+
+};
+
+
+/* =========================================================
+   STOP CAMERA
+========================================================= */
+
+function stopBarcodeCamera() {
+
+    if (barcodeStream) {
+
+        barcodeStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        barcodeStream = null;
+
+    }
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (video) {
+
+        video.srcObject = null;
+
+    }
+
+}

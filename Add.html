@@ -285,25 +285,24 @@
 
                     <div class="barcode-input">
 
-                        <input
-                            type="text"
-                            id="barcode"
-                            placeholder="Enter barcode"
-                            inputmode="numeric"
-                            autocomplete="off"
-                        >
+    <input
+        type="text"
+        id="barcode"
+        placeholder="Enter barcode"
+        inputmode="numeric"
+        autocomplete="off"
+        spellcheck="false"
+    >
 
+    <button
+        type="button"
+        onclick="scanBarcode()"
+        aria-label="Scan barcode"
+    >
+        📷
+    </button>
 
-                        <button
-                            type="button"
-                            onclick="scanBarcode()"
-                        >
-
-                            Scan
-
-                        </button>
-
-                    </div>
+</div>
 
                 </div>
 
@@ -435,6 +434,90 @@
         </button>
 
     </div>
+
+
+
+<!-- =====================================================
+     BARCODE SCANNER MODAL
+====================================================== -->
+
+<div
+    id="barcodeScannerModal"
+    class="barcode-scanner-modal"
+    hidden>
+
+    <div class="barcode-scanner-card">
+
+        <div class="barcode-scanner-header">
+
+            <div>
+
+                <h2>
+                    Scan Barcode
+                </h2>
+
+                <p>
+                    Place the barcode inside the frame
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="barcode-scanner-close"
+                onclick="closeBarcodeScanner()"
+                aria-label="Close scanner">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <div class="barcode-camera-area">
+
+            <video
+                id="barcodeVideo"
+                autoplay
+                muted
+                playsinline>
+            </video>
+
+
+            <div class="barcode-scan-frame">
+
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="barcodeScannerStatus"
+            class="barcode-scanner-status">
+
+            Starting camera...
+
+        </div>
+
+
+        <button
+            type="button"
+            class="barcode-cancel-button"
+            onclick="closeBarcodeScanner()">
+
+            Cancel
+
+        </button>
+
+    </div>
+
+</div>
 
 
 

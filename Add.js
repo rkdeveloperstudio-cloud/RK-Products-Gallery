@@ -574,29 +574,49 @@ function showImage(file) {
 
 
 /* =========================================================
-   SCAN BARCODE
+   BARCODE SCANNER
 ========================================================= */
 
-function scanBarcode() {
+let barcodeStream = null;
 
-    const barcodeInput =
+let barcodeDetector = null;
+
+let barcodeScanning = false;
+
+
+/* =========================================================
+   START BARCODE SCANNER
+========================================================= */
+
+async function scanBarcode() {
+
+    console.log(
+        "START BARCODE SCANNER"
+    );
+
+
+    const modal =
         document.getElementById(
-            "barcode"
+            "barcodeScannerModal"
+        );
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+    const status =
+        document.getElementById(
+            "barcodeScannerStatus"
         );
 
 
-    if (
-        !barcodeInput
-    ) {
-
-        console.error(
-            "Barcode input was not found."
-        );
+    if (!modal || !video) {
 
         showToast(
-            "Barcode field is unavailable.",
+            "Barcode scanner interface is unavailable.",
             "error",
-            "Barcode error"
+            "Scanner error"
         );
 
         return;
@@ -604,21 +624,313 @@ function scanBarcode() {
     }
 
 
-    /*
-       Temporary barcode function.
+    /* =====================================================
+       CHECK BROWSER SUPPORT
+    ===================================================== */
 
-       Currently focuses the barcode field.
-       Real camera barcode scanning can
-       be added later.
-    */
+    if (
+        !("BarcodeDetector" in window)
+    ) {
 
-    barcodeInput.focus();
+        showToast(
+            "Barcode scanning is not supported by this browser.",
+            "error",
+            "Scanner unavailable"
+        );
 
-    barcodeInput.select();
+        return;
+
+    }
+
+
+    try {
+
+        modal.hidden = false;
+
+
+        status.textContent =
+            "Starting camera...";
+
+
+        /* =================================================
+           CREATE DETECTOR
+        ================================================= */
+
+        barcodeDetector =
+            new BarcodeDetector({
+
+                formats: [
+
+                    "ean_13",
+
+                    "ean_8",
+
+                    "upc_a",
+
+                    "upc_e",
+
+                    "code_128",
+
+                    "code_39",
+
+                    "code_93",
+
+                    "itf",
+
+                    "codabar"
+
+                ]
+
+            });
+
+
+        /* =================================================
+           OPEN REAR CAMERA
+        ================================================= */
+
+        barcodeStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video: {
+
+                    facingMode: {
+                        ideal: "environment"
+                    }
+
+                },
+
+                audio: false
+
+            });
+
+
+        video.srcObject =
+            barcodeStream;
+
+
+        await video.play();
+
+
+        status.textContent =
+            "Point the camera at the barcode";
+
+
+        barcodeScanning =
+            true;
+
+
+        scanBarcodeFrame();
+
+    }
+    catch (error) {
+
+        console.error(
+            "BARCODE CAMERA ERROR:",
+            error
+        );
+
+
+        stopBarcodeScanner();
+
+
+        if (modal) {
+
+            modal.hidden =
+                true;
+
+        }
+
+
+        showToast(
+            "Unable to access the camera. Please allow camera permission.",
+            "error",
+            "Camera error"
+        );
+
+    }
 
 }
 
 
+/* =========================================================
+   DETECTION LOOP
+========================================================= */
+
+async function scanBarcodeFrame() {
+
+    if (!barcodeScanning) {
+
+        return;
+
+    }
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (
+        !video ||
+        video.readyState <
+        HTMLMediaElement.HAVE_ENOUGH_DATA
+    ) {
+
+        requestAnimationFrame(
+            scanBarcodeFrame
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const detected =
+            await barcodeDetector.detect(
+                video
+            );
+
+
+        if (
+            detected.length > 0
+        ) {
+
+            const barcode =
+                detected[0].rawValue;
+
+
+            console.log(
+                "BARCODE DETECTED:",
+                barcode
+            );
+
+
+            if (barcode) {
+
+                const barcodeInput =
+                    document.getElementById(
+                        "barcode"
+                    );
+
+
+                if (barcodeInput) {
+
+                    barcodeInput.value =
+                        barcode;
+
+
+                    barcodeInput.focus();
+
+                }
+
+
+                closeBarcodeScanner();
+
+
+                showToast(
+                    "Barcode " +
+                    barcode +
+                    " was scanned successfully.",
+                    "success",
+                    "Barcode scanned"
+                );
+
+
+                return;
+
+            }
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "BARCODE DETECTION ERROR:",
+            error
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        scanBarcodeFrame
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE SCANNER
+========================================================= */
+
+function closeBarcodeScanner() {
+
+    console.log(
+        "CLOSE BARCODE SCANNER"
+    );
+
+
+    barcodeScanning =
+        false;
+
+
+    stopBarcodeScanner();
+
+
+    const modal =
+        document.getElementById(
+            "barcodeScannerModal"
+        );
+
+
+    if (modal) {
+
+        modal.hidden =
+            true;
+
+    }
+
+}
+
+
+/* =========================================================
+   STOP CAMERA
+========================================================= */
+
+function stopBarcodeScanner() {
+
+    if (barcodeStream) {
+
+        barcodeStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        barcodeStream =
+            null;
+
+    }
+
+
+    const video =
+        document.getElementById(
+            "barcodeVideo"
+        );
+
+
+    if (video) {
+
+        video.srcObject =
+            null;
+
+    }
+
+}
 /* =========================================================
    LOAD CLIP MODEL
 ========================================================= */
